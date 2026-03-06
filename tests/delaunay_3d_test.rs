@@ -2,7 +2,7 @@
 mod delaunay_3d_test {
     use anyhow::Result;
     use env_logger;
-    use rand::Rng;
+    use rand::RngExt;
     use std::time::Instant;
 
     use simple_delaunay_lib::delaunay_3d::delaunay_struct_3d;
@@ -28,11 +28,11 @@ mod delaunay_3d_test {
 
     #[test]
     fn test_random() -> Result<()> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let mut vec_pts: Vec<[f64; 3]> = Vec::new();
         for _ in 0..1000 {
-            let (x, y, z): (f64, f64, f64) = rng.gen();
+            let (x, y, z): (f64, f64, f64) = rng.random();
             vec_pts.push([x, y, z]);
         }
         create_and_check_delaunay(&vec_pts)?;
@@ -61,12 +61,12 @@ mod delaunay_3d_test {
 
     #[test]
     fn test_update() -> Result<()> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let mut vec_pts: Vec<[f64; 3]> = Vec::new();
         let mut vec_inds: Vec<usize> = Vec::new();
         for ind in 0..1000 {
-            let (x, y, z): (f64, f64, f64) = rng.gen();
+            let (x, y, z): (f64, f64, f64) = rng.random();
             vec_pts.push([x, y, z]);
             vec_inds.push(ind);
         }
@@ -84,7 +84,7 @@ mod delaunay_3d_test {
         let mut vec_pts: Vec<[f64; 3]> = Vec::new();
         let mut vec_inds: Vec<usize> = Vec::new();
         for ind in 0..1000 {
-            let (x, y, z): (f64, f64, f64) = rng.gen();
+            let (x, y, z): (f64, f64, f64) = rng.random();
             vec_pts.push([x, y, z]);
             vec_inds.push(ind);
         }

@@ -1,16 +1,16 @@
 use anyhow::Result;
 use env_logger;
-use rand::Rng;
+use rand::RngExt;
 use std::time::Instant;
 
 use simple_delaunay_lib::delaunay_3d::delaunay_struct_3d::DelaunayStructure3D;
 
 fn generate_random_vertices(nb_vert: usize) -> Vec<[f64; 3]> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let mut vec_pts: Vec<[f64; 3]> = Vec::new();
     for _ in 0..nb_vert {
-        let (x, y, z): (f64, f64, f64) = rng.gen();
+        let (x, y, z): (f64, f64, f64) = rng.random();
         vec_pts.push([x, y, z]);
     }
     vec_pts

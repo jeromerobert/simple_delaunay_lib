@@ -2,7 +2,7 @@
 mod delaunay_2d_test {
     use anyhow::Result;
     use env_logger;
-    use rand::Rng;
+    use rand::RngExt;
     use simple_delaunay_lib::delaunay_2d::delaunay_struct_2d;
     use std::time::Instant;
 
@@ -27,11 +27,11 @@ mod delaunay_2d_test {
 
     #[test]
     fn test_random() -> Result<()> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let mut vec_pts: Vec<[f64; 2]> = Vec::new();
         for _ in 0..1000 {
-            let (x, y): (f64, f64) = rng.gen();
+            let (x, y): (f64, f64) = rng.random();
             vec_pts.push([x, y]);
         }
         create_and_check_delaunay(&vec_pts)?;
@@ -57,12 +57,12 @@ mod delaunay_2d_test {
 
     #[test]
     fn test_update() -> Result<()> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let mut vec_pts: Vec<[f64; 2]> = Vec::new();
         let mut vec_inds: Vec<usize> = Vec::new();
         for ind in 0..1000 {
-            let (x, y): (f64, f64) = rng.gen();
+            let (x, y): (f64, f64) = rng.random();
             vec_pts.push([x, y]);
             vec_inds.push(ind);
         }
@@ -80,7 +80,7 @@ mod delaunay_2d_test {
         let mut vec_pts: Vec<[f64; 2]> = Vec::new();
         let mut vec_inds: Vec<usize> = Vec::new();
         for ind in 0..1000 {
-            let (x, y): (f64, f64) = rng.gen();
+            let (x, y): (f64, f64) = rng.random();
             vec_pts.push([x, y]);
             vec_inds.push(ind);
         }

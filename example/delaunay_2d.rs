@@ -2,7 +2,7 @@ use anyhow::Result;
 use env_logger;
 use log;
 use nalgebra::base::*;
-use rand::Rng;
+use rand::RngExt;
 use std::time::Instant;
 
 use svg::node::element;
@@ -151,12 +151,12 @@ fn draw_svg(delaunay: &DelaunayStructure2D, name: String, draw_circles: bool) ->
 
 fn main() -> Result<()> {
     env_logger::init();
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let mut vec_pts: Vec<[f64; 2]> = Vec::new();
     let mut vec_inds: Vec<usize> = Vec::new();
     for ind in 0..1000 {
-        let (x, y): (f64, f64) = rng.gen();
+        let (x, y): (f64, f64) = rng.random();
         vec_pts.push([x, y]);
         vec_inds.push(ind);
     }
