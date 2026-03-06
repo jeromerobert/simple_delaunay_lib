@@ -9,8 +9,7 @@ fn generate_random_vertices(nb_vert: usize) -> Vec<[f64; 2]> {
 
     let mut vec_pts: Vec<[f64; 2]> = Vec::new();
     for _ in 0..nb_vert {
-        let (x, y): (f64, f64) = rng.random();
-        vec_pts.push([x, y]);
+        vec_pts.push(rng.random());
     }
     vec_pts
 }
@@ -18,7 +17,7 @@ fn generate_random_vertices(nb_vert: usize) -> Vec<[f64; 2]> {
 fn main() -> Result<()> {
     env_logger::init();
 
-    let nb_vert_array = [10, 100, 1000, 10000, 100000, 1000000];
+    let nb_vert_array = [10, 100, 1000, 10000, 100_000, 1_000_000];
 
     for nb_vert in nb_vert_array {
         let vec_pts = generate_random_vertices(nb_vert);

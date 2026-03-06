@@ -1,6 +1,6 @@
 /// Sorts vertices along 3D Hilbert curve
 #[must_use]
-pub fn build_hilbert_curve_3d(vertices: &Vec<[f64; 3]>, indices_to_add: &Vec<usize>) -> Vec<usize> {
+pub fn build_hilbert_curve_3d(vertices: &[[f64; 3]], indices_to_add: &Vec<usize>) -> Vec<usize> {
     let mut curve_order = Vec::new();
 
     let mut pt_min = vertices[indices_to_add[0]];
@@ -31,70 +31,66 @@ pub fn build_hilbert_curve_3d(vertices: &Vec<[f64; 3]>, indices_to_add: &Vec<usi
     let indices: Vec<usize> = indices_to_add.clone();
     to_subdiv.push(([0, 0, 0], 0, pt_min, pt_max, indices));
 
-    loop {
-        if let Some((start, dir, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
-            if indices_to_add.len() > 1 {
-                let sep_x = f64::midpoint(pt_min[0], pt_max[0]);
-                let sep_y = f64::midpoint(pt_min[1], pt_max[1]);
-                let sep_z = f64::midpoint(pt_min[2], pt_max[2]);
+    while let Some((start, dir, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
+        if indices_to_add.len() > 1 {
+            let sep_x = f64::midpoint(pt_min[0], pt_max[0]);
+            let sep_y = f64::midpoint(pt_min[1], pt_max[1]);
+            let sep_z = f64::midpoint(pt_min[2], pt_max[2]);
 
-                let mut sep_ind = [
-                    [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
-                    [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
-                ];
+            let mut sep_ind = [
+                [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
+                [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
+            ];
 
-                for &ind in &indices_to_add {
-                    let vert = vertices[ind];
-                    let xind = i32::from(vert[0] >= sep_x) as usize;
-                    let yind = i32::from(vert[1] >= sep_y) as usize;
-                    let zind = i32::from(vert[2] >= sep_z) as usize;
-                    sep_ind[xind][yind][zind].push(ind);
-                }
-
-                let pt_x = [pt_min[0], sep_x, pt_max[0]];
-                let pt_y = [pt_min[1], sep_y, pt_max[1]];
-                let pt_z = [pt_min[2], sep_z, pt_max[2]];
-
-                let (next_modif, dir) = match (dir, start[dir]) {
-                    (0, 0) => Some(([1, 2, 1, 0, 1, 2, 1, 0], [1, 2, 2, 0, 0, 2, 2, 1])),
-                    (0, 1) => Some(([2, 1, 2, 0, 2, 1, 2, 0], [2, 1, 1, 0, 0, 1, 1, 2])),
-                    (1, 0) => Some(([2, 0, 2, 1, 2, 0, 2, 1], [2, 0, 0, 1, 1, 0, 0, 2])),
-                    (1, 1) => Some(([0, 2, 0, 1, 0, 2, 0, 1], [0, 2, 2, 1, 1, 2, 2, 0])),
-                    (2, 0) => Some(([0, 1, 0, 2, 0, 1, 0, 2], [0, 1, 1, 2, 2, 1, 1, 0])),
-                    (2, 1) => Some(([1, 0, 1, 2, 1, 0, 1, 2], [1, 0, 0, 2, 2, 0, 0, 1])),
-                    (_, _) => None,
-                }
-                .unwrap();
-
-                let mut sep_subind = start;
-                let mut start_ind = start;
-                for i in 0..8 {
-                    let mut vec_inds = Vec::new();
-                    vec_inds.append(&mut sep_ind[sep_subind[0]][sep_subind[1]][sep_subind[2]]);
-                    to_subdiv.push((
-                        start_ind,
-                        dir[i],
-                        [
-                            pt_x[sep_subind[0]],
-                            pt_y[sep_subind[1]],
-                            pt_z[sep_subind[2]],
-                        ],
-                        [
-                            pt_x[sep_subind[0] + 1],
-                            pt_y[sep_subind[1] + 1],
-                            pt_z[sep_subind[2] + 1],
-                        ],
-                        vec_inds,
-                    ));
-                    sep_subind[next_modif[i]] = 1 - sep_subind[next_modif[i]];
-                    start_ind[next_modif[i]] = 1 - start_ind[next_modif[i]];
-                    start_ind[dir[i]] = 1 - start_ind[dir[i]];
-                }
-            } else if indices_to_add.len() == 1 {
-                curve_order.push(indices_to_add[0]);
+            for &ind in &indices_to_add {
+                let vert = vertices[ind];
+                let xind = i32::from(vert[0] >= sep_x) as usize;
+                let yind = i32::from(vert[1] >= sep_y) as usize;
+                let zind = i32::from(vert[2] >= sep_z) as usize;
+                sep_ind[xind][yind][zind].push(ind);
             }
-        } else {
-            break;
+
+            let pt_x = [pt_min[0], sep_x, pt_max[0]];
+            let pt_y = [pt_min[1], sep_y, pt_max[1]];
+            let pt_z = [pt_min[2], sep_z, pt_max[2]];
+
+            let (next_modif, dir) = match (dir, start[dir]) {
+                (0, 0) => Some(([1, 2, 1, 0, 1, 2, 1, 0], [1, 2, 2, 0, 0, 2, 2, 1])),
+                (0, 1) => Some(([2, 1, 2, 0, 2, 1, 2, 0], [2, 1, 1, 0, 0, 1, 1, 2])),
+                (1, 0) => Some(([2, 0, 2, 1, 2, 0, 2, 1], [2, 0, 0, 1, 1, 0, 0, 2])),
+                (1, 1) => Some(([0, 2, 0, 1, 0, 2, 0, 1], [0, 2, 2, 1, 1, 2, 2, 0])),
+                (2, 0) => Some(([0, 1, 0, 2, 0, 1, 0, 2], [0, 1, 1, 2, 2, 1, 1, 0])),
+                (2, 1) => Some(([1, 0, 1, 2, 1, 0, 1, 2], [1, 0, 0, 2, 2, 0, 0, 1])),
+                (_, _) => None,
+            }
+            .unwrap();
+
+            let mut sep_subind = start;
+            let mut start_ind = start;
+            for i in 0..8 {
+                let mut vec_inds = Vec::new();
+                vec_inds.append(&mut sep_ind[sep_subind[0]][sep_subind[1]][sep_subind[2]]);
+                to_subdiv.push((
+                    start_ind,
+                    dir[i],
+                    [
+                        pt_x[sep_subind[0]],
+                        pt_y[sep_subind[1]],
+                        pt_z[sep_subind[2]],
+                    ],
+                    [
+                        pt_x[sep_subind[0] + 1],
+                        pt_y[sep_subind[1] + 1],
+                        pt_z[sep_subind[2] + 1],
+                    ],
+                    vec_inds,
+                ));
+                sep_subind[next_modif[i]] = 1 - sep_subind[next_modif[i]];
+                start_ind[next_modif[i]] = 1 - start_ind[next_modif[i]];
+                start_ind[dir[i]] = 1 - start_ind[dir[i]];
+            }
+        } else if indices_to_add.len() == 1 {
+            curve_order.push(indices_to_add[0]);
         }
     }
 

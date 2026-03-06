@@ -14,6 +14,7 @@ pub enum ExtendedTetrahedron {
 }
 
 /// 3D Delaunay structure
+#[derive(Default)]
 pub struct DelaunayStructure3D {
     simpl_struct: SimplicialStructure3D,
     vertex_coordinates: Vec<[f64; 3]>,
@@ -24,13 +25,8 @@ pub struct DelaunayStructure3D {
 impl DelaunayStructure3D {
     /// Delaunay structure initialisation
     #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            simpl_struct: SimplicialStructure3D::new(),
-            vertex_coordinates: Vec::new(),
-            walk_ns: 0,
-            insert_ns: 0,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Gets simplicial structure
@@ -252,8 +248,7 @@ impl DelaunayStructure3D {
         vert: &[f64; 3],
     ) -> Option<IterHalfTriangle<'a>> {
         for &tri in vec_tri {
-            let [nod1, nod2, nod3] = tri.nodes();
-            if let (Node::Value(v1), Node::Value(v2), Node::Value(v3)) = (nod1, nod2, nod3) {
+            if let [Node::Value(v1), Node::Value(v2), Node::Value(v3)] = tri.nodes() {
                 let pt1 = self.get_vertices()[v1];
                 let pt2 = self.get_vertices()[v2];
                 let pt3 = self.get_vertices()[v3];
@@ -537,9 +532,7 @@ impl DelaunayStructure3D {
             if self.is_tetrahedron_flat(ind_tetra)? {
                 log::warn!(
                     "Flat tetrahedron: {}",
-                    self.get_simplicial()
-                        .get_tetrahedron(ind_tetra)?
-                        .to_string()
+                    self.get_simplicial().get_tetrahedron(ind_tetra)?
                 );
                 continue;
             }
@@ -548,9 +541,7 @@ impl DelaunayStructure3D {
                 if in_sphere {
                     log::error!(
                         "Non Delaunay tetrahedron: {}",
-                        self.get_simplicial()
-                            .get_tetrahedron(ind_tetra)?
-                            .to_string()
+                        self.get_simplicial().get_tetrahedron(ind_tetra)?
                     );
 
                     valid = false;

@@ -1,4 +1,3 @@
-use anyhow::Result;
 use rand::RngExt;
 
 use svg::node::element;
@@ -7,15 +6,14 @@ use svg::Document;
 
 use simple_delaunay_lib::delaunay_2d::geometry_operations_2d::build_hilbert_curve;
 
-fn main() -> Result<()> {
+fn main() {
     env_logger::init();
     let mut rng = rand::rng();
 
     let mut vec_pts: Vec<[f64; 2]> = Vec::new();
     let mut vec_inds: Vec<usize> = Vec::new();
     for ind in 0..1000 {
-        let (x, y): (f64, f64) = rng.random();
-        vec_pts.push([x, y]);
+        vec_pts.push(rng.random());
         vec_inds.push(ind);
     }
 
@@ -50,5 +48,4 @@ fn main() -> Result<()> {
     }
 
     svg::save("hilbert_path.svg", &document).unwrap();
-    Ok(())
 }

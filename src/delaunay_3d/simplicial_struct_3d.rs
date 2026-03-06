@@ -1,4 +1,4 @@
-use std::vec;
+use std::{fmt::Display, vec};
 
 use anyhow::Result;
 use log;
@@ -36,27 +36,27 @@ impl Node {
         }
     }
 
-    /// Node to string
-    #[must_use]
-    pub fn to_string(&self) -> String {
-        match self {
-            Self::Infinity => "Node Infinity".to_string(),
-            Self::Value(val) => format!("Node {val}"),
-        }
-    }
-
     /// Print node string
     pub fn print(&self) {
-        print!("{}", self.to_string());
+        print!("{self}");
     }
 
     /// Println node string
     pub fn println(&self) {
-        println!("{}", self.to_string());
+        println!("{self}");
     }
 }
 
+impl Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Infinity => write!(f, "Node Infinity"),
+            Self::Value(val) => write!(f, "Node {val}"),
+        }
+    }
+}
 /// 3D Simplicial structure
+#[derive(Default)]
 pub struct SimplicialStructure3D {
     // i   : nod0 \
     // i+1 : nod1  | -> tetrahedron
@@ -104,17 +104,8 @@ pub struct IterTetrahedron<'a> {
 impl SimplicialStructure3D {
     /// Simplicial structure initialisation
     #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            tet_nodes: Vec::new(),
-            halftriangle_opposite: Vec::new(),
-            nb_tetrahedra: 0,
-            should_rem_tet: Vec::new(),
-            should_keep_tet: Vec::new(),
-            tet_to_rem: Vec::new(),
-            tet_to_keep: Vec::new(),
-            tet_to_check: Vec::new(),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     const fn halfedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> IterHalfEdge<'_> {
@@ -274,13 +265,9 @@ impl SimplicialStructure3D {
 
     /// Gets next tetrahedron to check
     pub fn bw_tetra_to_check(&mut self) -> Option<usize> {
-        loop {
-            if let Some(ind_tetra) = self.tet_to_check.pop() {
-                if !self.should_rem_tet[ind_tetra] && !self.should_keep_tet[ind_tetra] {
-                    return Some(ind_tetra);
-                }
-            } else {
-                break;
+        while let Some(ind_tetra) = self.tet_to_check.pop() {
+            if !self.should_rem_tet[ind_tetra] && !self.should_keep_tet[ind_tetra] {
+                return Some(ind_tetra);
             }
         }
         None
@@ -381,10 +368,10 @@ impl SimplicialStructure3D {
 
         let mut added_tets = Vec::new();
         // 3 - create tetrahedra
-        for i in 0..vec_tri.len() {
+        for ind_halftriangle in vec_tri.iter().copied() {
             let cur_tri = IterHalfTriangle {
                 simplicial: self,
-                ind_halftriangle: vec_tri[i],
+                ind_halftriangle,
             };
             let [nod0, nod1, nod2] = cur_tri.nodes();
             if let Some(ind_add) = self.tet_to_rem.pop() {
@@ -448,27 +435,18 @@ impl SimplicialStructure3D {
             self.halftriangle_opposite[ind_tri_nei] = tri3;
         }
 
-        loop {
-            if let Some(ind_tetra_keep) = self.tet_to_keep.pop() {
-                self.should_keep_tet[ind_tetra_keep] = false;
-            } else {
-                break;
-            }
+        while let Some(ind_tetra_keep) = self.tet_to_keep.pop() {
+            self.should_keep_tet[ind_tetra_keep] = false;
         }
-
         Ok(added_tets)
     }
 
     /// Clean removed tetraedra
     pub fn clean_to_rem(&mut self) -> Result<()> {
         self.tet_to_rem.sort_unstable();
-        loop {
-            if let Some(ind_tetra_rem) = self.tet_to_rem.pop() {
-                self.should_rem_tet[ind_tetra_rem] = false;
-                self.mov_end_tetrahedron(ind_tetra_rem)?;
-            } else {
-                break;
-            }
+        while let Some(ind_tetra_rem) = self.tet_to_rem.pop() {
+            self.should_rem_tet[ind_tetra_rem] = false;
+            self.mov_end_tetrahedron(ind_tetra_rem);
         }
         Ok(())
     }
@@ -511,7 +489,7 @@ impl SimplicialStructure3D {
         (ind_first, ind_first + 1, ind_first + 2, ind_first + 3)
     }
 
-    fn mov_end_tetrahedron(&mut self, ind_tetra: usize) -> Result<()> {
+    fn mov_end_tetrahedron(&mut self, ind_tetra: usize) {
         if ind_tetra != self.nb_tetrahedra - 1 {
             let ind_tri_opp1 = self.halftriangle_opposite[self.halftriangle_opposite.len() - 4];
             let ind_tri_opp2 = self.halftriangle_opposite[self.halftriangle_opposite.len() - 3];
@@ -547,8 +525,6 @@ impl SimplicialStructure3D {
         self.should_rem_tet.pop();
         self.should_keep_tet.pop();
         self.nb_tetrahedra -= 1;
-
-        Ok(())
     }
 
     /// Inserts a first tetrahedron in the structure
@@ -635,6 +611,12 @@ impl SimplicialStructure3D {
             print!("  ");
             tetra.println();
         }
+    }
+}
+
+impl Display for IterHalfEdge<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Edge: {} -> {}", self.first_node(), self.last_node())
     }
 }
 
@@ -733,46 +715,35 @@ impl<'a> IterHalfEdge<'a> {
         let he_opp = self.opposite();
         let he_nei = self.neighbor();
 
-        let mut valid = true;
+        let mut valid = he_next.first_node().equals(&last_node);
 
-        if !he_next.first_node().equals(&last_node) {
-            log::error!("{}: Wrong next halfedge", self.to_string());
-            valid = false;
+        if !valid {
+            log::error!("{self}: Wrong next halfedge");
         }
         if !he_prev.last_node().equals(&first_node) {
-            log::error!("{}: Wrong previous halfedge", self.to_string());
+            log::error!("{self}: Wrong previous halfedge");
             valid = false;
         }
         if !he_opp.first_node().equals(&last_node) || !he_opp.last_node().equals(&first_node) {
-            log::error!("{}: Wrong opposite halfedge", self.to_string());
+            log::error!("{self}: Wrong opposite halfedge");
             valid = false;
         }
         if !he_nei.first_node().equals(&last_node) || !he_nei.last_node().equals(&first_node) {
-            log::error!("{}: Wrong neighbor halfedge", self.to_string());
+            log::error!("{self}: Wrong neighbor halfedge");
             valid = false;
         }
 
         valid
     }
 
-    /// Halfedge to string
-    #[must_use]
-    pub fn to_string(&self) -> String {
-        format!(
-            "Edge: {} -> {}",
-            self.first_node().to_string(),
-            self.last_node().to_string()
-        )
-    }
-
     /// Print halfedge string
     pub fn print(&self) {
-        print!("{}", self.to_string());
+        print!("{self}");
     }
 
     /// Println halfedge string
     pub fn println(&self) {
-        println!("{}", self.to_string());
+        println!("{self}");
     }
 }
 
@@ -863,35 +834,36 @@ impl<'a> IterHalfTriangle<'a> {
         } else if nod0.equals(&nod1o) && nod1.equals(&nod0o) && nod2.equals(&nod2o) {
             ();
         } else {
-            log::error!("{}: Wrong opposite halftriangle", self.to_string());
-            log::error!("{}", self.opposite().to_string());
+            log::error!("{self}: Wrong opposite halftriangle");
+            log::error!("{}", self.opposite());
             return false;
         }
 
         true
     }
 
-    /// Triangle to string
-    #[must_use]
-    pub fn to_string(&self) -> String {
-        let [nod1, nod2, nod3] = self.nodes();
-        format!(
-            "Triangle {}: {} -> {} -> {}",
-            self.ind(),
-            nod1.to_string(),
-            nod2.to_string(),
-            nod3.to_string()
-        )
-    }
-
     /// Print triangle string
     pub fn print(&self) {
-        print!("{}", self.to_string());
+        print!("{self}");
     }
 
     /// Println triangle string
     pub fn println(&self) {
-        println!("{}", self.to_string());
+        println!("{self}");
+    }
+}
+
+impl Display for IterHalfTriangle<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let [nod1, nod2, nod3] = self.nodes();
+        write!(
+            f,
+            "Triangle {}: {} -> {} -> {}",
+            self.ind(),
+            nod1,
+            nod2,
+            nod3
+        )
     }
 }
 
@@ -960,7 +932,7 @@ impl<'a> IterTetrahedron<'a> {
     #[must_use]
     pub fn is_valid(&self) -> bool {
         if self.should_rem() || self.bw_to_keep() {
-            log::error!("{}: non cleaned tetrahedron", self.to_string());
+            log::error!("{self}: non cleaned tetrahedron");
             false
         } else {
             let [n0, n1, n2, n3] = self.nodes();
@@ -972,7 +944,7 @@ impl<'a> IterTetrahedron<'a> {
                 || n1.equals(&n3)
                 || n2.equals(&n3)
             {
-                log::error!("{}: Wrong set of nodes", self.to_string());
+                log::error!("{self}: Wrong set of nodes");
                 false
             } else {
                 true
@@ -980,27 +952,28 @@ impl<'a> IterTetrahedron<'a> {
         }
     }
 
-    /// Tetrahedron to string
-    #[must_use]
-    pub fn to_string(&self) -> String {
-        let [nod1, nod2, nod3, nod4] = self.nodes();
-        format!(
-            "Tetrahedron {}: {} -> {} -> {} -> {}",
-            self.ind(),
-            nod1.to_string(),
-            nod2.to_string(),
-            nod3.to_string(),
-            nod4.to_string()
-        )
-    }
-
     /// Print tetrahedron string
     pub fn print(&self) {
-        print!("{}", self.to_string());
+        print!("{self}");
     }
 
     /// Println tetrahedron string
     pub fn println(&self) {
-        println!("{}", self.to_string());
+        println!("{self}");
+    }
+}
+
+impl Display for IterTetrahedron<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let [nod1, nod2, nod3, nod4] = self.nodes();
+        write!(
+            f,
+            "Tetrahedron {}: {} -> {} -> {} -> {}",
+            self.ind(),
+            nod1,
+            nod2,
+            nod3,
+            nod4
+        )
     }
 }

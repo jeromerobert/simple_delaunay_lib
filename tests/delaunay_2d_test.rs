@@ -29,10 +29,9 @@ mod delaunay_2d_test {
     fn test_random() -> Result<()> {
         let mut rng = rand::rng();
 
-        let mut vec_pts: Vec<[f64; 2]> = Vec::new();
+        let mut vec_pts = Vec::new();
         for _ in 0..1000 {
-            let (x, y): (f64, f64) = rng.random();
-            vec_pts.push([x, y]);
+            vec_pts.push(rng.random());
         }
         create_and_check_delaunay(&vec_pts)?;
         Ok(())
@@ -40,16 +39,14 @@ mod delaunay_2d_test {
 
     #[test]
     fn test_regular() -> Result<()> {
-        let mut vec_pts: Vec<[f64; 2]> = Vec::new();
-        let mut vec_inds: Vec<usize> = Vec::new();
+        let mut vec_pts = Vec::new();
         for ind in 0..1000 {
             let ind1 = ind % 100;
             let ind2 = ind / 100;
 
-            let x = (ind1 as f64) / 100.;
-            let y = (ind2 as f64) / 100.;
+            let x = f64::from(ind1) / 100.;
+            let y = f64::from(ind2) / 100.;
             vec_pts.push([x, y]);
-            vec_inds.push(ind);
         }
         create_and_check_delaunay(&vec_pts)?;
         Ok(())
@@ -59,12 +56,9 @@ mod delaunay_2d_test {
     fn test_update() -> Result<()> {
         let mut rng = rand::rng();
 
-        let mut vec_pts: Vec<[f64; 2]> = Vec::new();
-        let mut vec_inds: Vec<usize> = Vec::new();
-        for ind in 0..1000 {
-            let (x, y): (f64, f64) = rng.random();
-            vec_pts.push([x, y]);
-            vec_inds.push(ind);
+        let mut vec_pts = Vec::new();
+        for _ in 0..1000 {
+            vec_pts.push(rng.random());
         }
         let now = Instant::now();
         let mut del_struct = delaunay_struct_2d::DelaunayStructure2D::new();
@@ -78,11 +72,8 @@ mod delaunay_2d_test {
         assert!(del_struct.is_valid()?);
 
         let mut vec_pts: Vec<[f64; 2]> = Vec::new();
-        let mut vec_inds: Vec<usize> = Vec::new();
-        for ind in 0..1000 {
-            let (x, y): (f64, f64) = rng.random();
-            vec_pts.push([x, y]);
-            vec_inds.push(ind);
+        for _ in 0..1000 {
+            vec_pts.push(rng.random());
         }
         let now = Instant::now();
         del_struct.insert_vertices(&vec_pts, true)?;

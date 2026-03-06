@@ -50,31 +50,31 @@ impl DelaunayStructure2D {
 
     /// Gets extended triangle from index
     pub fn get_extended_triangle(&self, ind_triangle: usize) -> Result<ExtendedTriangle> {
-        let [node1, node2, node3] = self.get_simplicial().get_triangle(ind_triangle)?.nodes();
+        let nodes = self.get_simplicial().get_triangle(ind_triangle)?.nodes();
 
-        let ext_tri = match (node1, node2, node3) {
-            (Node::Infinity, Node::Value(ind_v2), Node::Value(ind_v3)) => {
+        let ext_tri = match nodes {
+            [Node::Infinity, Node::Value(ind_v2), Node::Value(ind_v3)] => {
                 let pt2 = self.get_vertices()[ind_v2];
                 let pt3 = self.get_vertices()[ind_v3];
                 ExtendedTriangle::Segment([pt2, pt3])
             }
-            (Node::Value(ind_v1), Node::Infinity, Node::Value(ind_v3)) => {
+            [Node::Value(ind_v1), Node::Infinity, Node::Value(ind_v3)] => {
                 let pt1 = self.get_vertices()[ind_v1];
                 let pt3 = self.get_vertices()[ind_v3];
                 ExtendedTriangle::Segment([pt3, pt1])
             }
-            (Node::Value(ind_v1), Node::Value(ind_v2), Node::Infinity) => {
+            [Node::Value(ind_v1), Node::Value(ind_v2), Node::Infinity] => {
                 let pt1 = self.get_vertices()[ind_v1];
                 let pt2 = self.get_vertices()[ind_v2];
                 ExtendedTriangle::Segment([pt1, pt2])
             }
-            (Node::Value(ind_v1), Node::Value(ind_v2), Node::Value(ind_v3)) => {
+            [Node::Value(ind_v1), Node::Value(ind_v2), Node::Value(ind_v3)] => {
                 let pt1 = self.get_vertices()[ind_v1];
                 let pt2 = self.get_vertices()[ind_v2];
                 let pt3 = self.get_vertices()[ind_v3];
                 ExtendedTriangle::Triangle([pt1, pt2, pt3])
             }
-            (_, _, _) => {
+            [_, _, _] => {
                 return Err(anyhow::Error::msg("Case should not happen"));
             }
         };
@@ -378,7 +378,7 @@ impl DelaunayStructure2D {
         self.vertex_coordinates.push(vertex);
         self.insert_vertex_helper(
             indices_to_insert,
-            near_to.unwrap_or(self.simpl_struct.get_nb_triangles() - 1),
+            near_to.unwrap_or_else(|| self.simpl_struct.get_nb_triangles() - 1),
         )?;
         log::info!("Walks computed in {}ms", self.walk_ms as f32 / 1e6);
         log::info!("Insertions computed in {}ms", self.insert_ms as f32 / 1e6);
@@ -416,12 +416,8 @@ impl DelaunayStructure2D {
             self.insert_first_triangle(&mut indices_to_insert)?;
         }
 
-        loop {
-            if let Some(ind_vertex) = indices_to_insert.pop() {
-                self.insert_vertex_helper(ind_vertex, self.simpl_struct.get_nb_triangles() - 1)?;
-            } else {
-                break;
-            }
+        while let Some(ind_vertex) = indices_to_insert.pop() {
+            self.insert_vertex_helper(ind_vertex, self.simpl_struct.get_nb_triangles() - 1)?;
         }
         log::info!("Walks computed in {}ms", self.walk_ms as f32 / 1e6);
         log::info!("Insertions computed in {}ms", self.insert_ms as f32 / 1e6);
@@ -455,5 +451,11 @@ impl DelaunayStructure2D {
         }
 
         Ok(valid)
+    }
+}
+
+impl Default for DelaunayStructure2D {
+    fn default() -> Self {
+        Self::new()
     }
 }

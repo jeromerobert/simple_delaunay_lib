@@ -2,7 +2,7 @@ use robust::{self, Coord};
 
 /// Sorts vertices along 2D Hilbert curve
 #[must_use]
-pub fn build_hilbert_curve(vertices: &Vec<[f64; 2]>, indices_to_add: &Vec<usize>) -> Vec<usize> {
+pub fn build_hilbert_curve(vertices: &[[f64; 2]], indices_to_add: &Vec<usize>) -> Vec<usize> {
     let mut curve_order = Vec::new();
 
     let mut pt_min = vertices[indices_to_add[0]];
@@ -27,90 +27,86 @@ pub fn build_hilbert_curve(vertices: &Vec<[f64; 2]>, indices_to_add: &Vec<usize>
     let indices: Vec<usize> = indices_to_add.clone();
     to_subdiv.push((0, pt_min, pt_max, indices));
 
-    loop {
-        if let Some((rot, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
-            if indices_to_add.len() > 1 {
-                let sep_x = f64::midpoint(pt_min[0], pt_max[0]);
-                let sep_y = f64::midpoint(pt_min[1], pt_max[1]);
+    while let Some((rot, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
+        if indices_to_add.len() > 1 {
+            let sep_x = f64::midpoint(pt_min[0], pt_max[0]);
+            let sep_y = f64::midpoint(pt_min[1], pt_max[1]);
 
-                let mut ind_a = Vec::new();
-                let mut ind_b = Vec::new();
-                let mut ind_c = Vec::new();
-                let mut ind_d = Vec::new();
+            let mut ind_a = Vec::new();
+            let mut ind_b = Vec::new();
+            let mut ind_c = Vec::new();
+            let mut ind_d = Vec::new();
 
-                for &ind in &indices_to_add {
-                    let vert = vertices[ind];
-                    if vert[0] < sep_x {
-                        if vert[1] < sep_y {
-                            ind_a.push(ind);
-                        } else {
-                            ind_b.push(ind);
-                        }
-                    } else if vert[1] < sep_y {
-                        ind_d.push(ind);
+            for &ind in &indices_to_add {
+                let vert = vertices[ind];
+                if vert[0] < sep_x {
+                    if vert[1] < sep_y {
+                        ind_a.push(ind);
                     } else {
-                        ind_c.push(ind);
+                        ind_b.push(ind);
                     }
+                } else if vert[1] < sep_y {
+                    ind_d.push(ind);
+                } else {
+                    ind_c.push(ind);
                 }
-
-                let pt_a_min = pt_min;
-                let pt_a_max = [sep_x, sep_y];
-
-                let pt_b_min = [pt_min[0], sep_y];
-                let pt_b_max = [sep_x, pt_max[1]];
-
-                let pt_c_min = [sep_x, sep_y];
-                let pt_c_max = pt_max;
-
-                let pt_d_min = [sep_x, pt_min[1]];
-                let pt_d_max = [pt_max[0], sep_y];
-
-                if rot == 0 {
-                    to_subdiv.push((3, pt_a_min, pt_a_max, ind_a));
-                    to_subdiv.push((0, pt_b_min, pt_b_max, ind_b));
-                    to_subdiv.push((0, pt_c_min, pt_c_max, ind_c));
-                    to_subdiv.push((7, pt_d_min, pt_d_max, ind_d));
-                } else if rot == 1 {
-                    to_subdiv.push((6, pt_d_min, pt_d_max, ind_d));
-                    to_subdiv.push((1, pt_c_min, pt_c_max, ind_c));
-                    to_subdiv.push((1, pt_b_min, pt_b_max, ind_b));
-                    to_subdiv.push((2, pt_a_min, pt_a_max, ind_a));
-                } else if rot == 2 {
-                    to_subdiv.push((5, pt_b_min, pt_b_max, ind_b));
-                    to_subdiv.push((2, pt_c_min, pt_c_max, ind_c));
-                    to_subdiv.push((2, pt_d_min, pt_d_max, ind_d));
-                    to_subdiv.push((1, pt_a_min, pt_a_max, ind_a));
-                } else if rot == 3 {
-                    to_subdiv.push((0, pt_a_min, pt_a_max, ind_a));
-                    to_subdiv.push((3, pt_d_min, pt_d_max, ind_d));
-                    to_subdiv.push((3, pt_c_min, pt_c_max, ind_c));
-                    to_subdiv.push((4, pt_b_min, pt_b_max, ind_b));
-                } else if rot == 4 {
-                    to_subdiv.push((7, pt_c_min, pt_c_max, ind_c));
-                    to_subdiv.push((4, pt_d_min, pt_d_max, ind_d));
-                    to_subdiv.push((4, pt_a_min, pt_a_max, ind_a));
-                    to_subdiv.push((3, pt_b_min, pt_b_max, ind_b));
-                } else if rot == 5 {
-                    to_subdiv.push((2, pt_b_min, pt_b_max, ind_b));
-                    to_subdiv.push((5, pt_a_min, pt_a_max, ind_a));
-                    to_subdiv.push((5, pt_d_min, pt_d_max, ind_d));
-                    to_subdiv.push((6, pt_c_min, pt_c_max, ind_c));
-                } else if rot == 6 {
-                    to_subdiv.push((1, pt_d_min, pt_d_max, ind_d));
-                    to_subdiv.push((6, pt_a_min, pt_a_max, ind_a));
-                    to_subdiv.push((6, pt_b_min, pt_b_max, ind_b));
-                    to_subdiv.push((5, pt_c_min, pt_c_max, ind_c));
-                } else if rot == 7 {
-                    to_subdiv.push((4, pt_c_min, pt_c_max, ind_c));
-                    to_subdiv.push((7, pt_b_min, pt_b_max, ind_b));
-                    to_subdiv.push((7, pt_a_min, pt_a_max, ind_a));
-                    to_subdiv.push((0, pt_d_min, pt_d_max, ind_d));
-                }
-            } else if indices_to_add.len() == 1 {
-                curve_order.push(indices_to_add[0]);
             }
-        } else {
-            break;
+
+            let pt_a_min = pt_min;
+            let pt_a_max = [sep_x, sep_y];
+
+            let pt_b_min = [pt_min[0], sep_y];
+            let pt_b_max = [sep_x, pt_max[1]];
+
+            let pt_c_min = [sep_x, sep_y];
+            let pt_c_max = pt_max;
+
+            let pt_d_min = [sep_x, pt_min[1]];
+            let pt_d_max = [pt_max[0], sep_y];
+
+            if rot == 0 {
+                to_subdiv.push((3, pt_a_min, pt_a_max, ind_a));
+                to_subdiv.push((0, pt_b_min, pt_b_max, ind_b));
+                to_subdiv.push((0, pt_c_min, pt_c_max, ind_c));
+                to_subdiv.push((7, pt_d_min, pt_d_max, ind_d));
+            } else if rot == 1 {
+                to_subdiv.push((6, pt_d_min, pt_d_max, ind_d));
+                to_subdiv.push((1, pt_c_min, pt_c_max, ind_c));
+                to_subdiv.push((1, pt_b_min, pt_b_max, ind_b));
+                to_subdiv.push((2, pt_a_min, pt_a_max, ind_a));
+            } else if rot == 2 {
+                to_subdiv.push((5, pt_b_min, pt_b_max, ind_b));
+                to_subdiv.push((2, pt_c_min, pt_c_max, ind_c));
+                to_subdiv.push((2, pt_d_min, pt_d_max, ind_d));
+                to_subdiv.push((1, pt_a_min, pt_a_max, ind_a));
+            } else if rot == 3 {
+                to_subdiv.push((0, pt_a_min, pt_a_max, ind_a));
+                to_subdiv.push((3, pt_d_min, pt_d_max, ind_d));
+                to_subdiv.push((3, pt_c_min, pt_c_max, ind_c));
+                to_subdiv.push((4, pt_b_min, pt_b_max, ind_b));
+            } else if rot == 4 {
+                to_subdiv.push((7, pt_c_min, pt_c_max, ind_c));
+                to_subdiv.push((4, pt_d_min, pt_d_max, ind_d));
+                to_subdiv.push((4, pt_a_min, pt_a_max, ind_a));
+                to_subdiv.push((3, pt_b_min, pt_b_max, ind_b));
+            } else if rot == 5 {
+                to_subdiv.push((2, pt_b_min, pt_b_max, ind_b));
+                to_subdiv.push((5, pt_a_min, pt_a_max, ind_a));
+                to_subdiv.push((5, pt_d_min, pt_d_max, ind_d));
+                to_subdiv.push((6, pt_c_min, pt_c_max, ind_c));
+            } else if rot == 6 {
+                to_subdiv.push((1, pt_d_min, pt_d_max, ind_d));
+                to_subdiv.push((6, pt_a_min, pt_a_max, ind_a));
+                to_subdiv.push((6, pt_b_min, pt_b_max, ind_b));
+                to_subdiv.push((5, pt_c_min, pt_c_max, ind_c));
+            } else if rot == 7 {
+                to_subdiv.push((4, pt_c_min, pt_c_max, ind_c));
+                to_subdiv.push((7, pt_b_min, pt_b_max, ind_b));
+                to_subdiv.push((7, pt_a_min, pt_a_max, ind_a));
+                to_subdiv.push((0, pt_d_min, pt_d_max, ind_d));
+            }
+        } else if indices_to_add.len() == 1 {
+            curve_order.push(indices_to_add[0]);
         }
     }
 

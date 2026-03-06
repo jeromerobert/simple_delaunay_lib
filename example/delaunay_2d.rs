@@ -1,5 +1,5 @@
 use anyhow::Result;
-use nalgebra::base::{DimAdd, DimNameAdd, Matrix3x2, Norm, Normed, Vector2, Vector3};
+use nalgebra::base::{Matrix3x2, Vector2, Vector3};
 use rand::RngExt;
 use std::time::Instant;
 
@@ -35,13 +35,10 @@ fn circle_center_and_radius(
     let mat_mod = mat.transpose() * mat;
     let b_mod = mat.transpose() * b;
 
-    let opt_center = mat_mod.lu().solve(&b_mod);
-    if let Some(center) = opt_center {
+    mat_mod.lu().solve(&b_mod).map(|center| {
         let radius = (center - pt1).norm();
-        Some((center, radius))
-    } else {
-        None
-    }
+        (center, radius)
+    })
 }
 
 fn get_if_circle(
@@ -55,7 +52,7 @@ fn get_if_circle(
         let pt2 = Vector2::new(tri[1][0], tri[1][1]);
         let pt3 = Vector2::new(tri[2][0], tri[2][1]);
         let (ctr, rad) = circle_center_and_radius(&pt1, &pt2, &pt3)
-            .ok_or(anyhow::Error::msg("Could not compute circle"))?;
+            .ok_or_else(|| anyhow::Error::msg("Could not compute circle"))?;
 
         Ok(Some((ctr, rad)))
     } else {
@@ -151,12 +148,9 @@ fn main() -> Result<()> {
     env_logger::init();
     let mut rng = rand::rng();
 
-    let mut vec_pts: Vec<[f64; 2]> = Vec::new();
-    let mut vec_inds: Vec<usize> = Vec::new();
-    for ind in 0..1000 {
-        let (x, y): (f64, f64) = rng.random();
-        vec_pts.push([x, y]);
-        vec_inds.push(ind);
+    let mut vec_pts = Vec::new();
+    for _ in 0..1000 {
+        vec_pts.push(rng.random());
     }
 
     let now = Instant::now();
