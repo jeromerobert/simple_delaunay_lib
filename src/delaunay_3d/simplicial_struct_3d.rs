@@ -27,29 +27,31 @@ pub enum Node {
 
 impl Node {
     /// Checks equality between nodes
-    pub fn equals(&self, node: &Node) -> bool {
+    #[must_use]
+    pub fn equals(&self, node: &Self) -> bool {
         match (self, node) {
-            (Node::Infinity, Node::Infinity) => true,
-            (Node::Value(v1), Node::Value(v2)) => v1 == v2,
+            (Self::Infinity, Self::Infinity) => true,
+            (Self::Value(v1), Self::Value(v2)) => v1 == v2,
             (_, _) => false,
         }
     }
 
     /// Node to string
+    #[must_use]
     pub fn to_string(&self) -> String {
         match self {
-            Node::Infinity => "Node Infinity".to_string(),
-            Node::Value(val) => format!("Node {}", val),
+            Self::Infinity => "Node Infinity".to_string(),
+            Self::Value(val) => format!("Node {val}"),
         }
     }
 
     /// Print node string
-    pub fn print(&self) -> () {
+    pub fn print(&self) {
         print!("{}", self.to_string());
     }
 
     /// Println node string
-    pub fn println(&self) -> () {
+    pub fn println(&self) {
         println!("{}", self.to_string());
     }
 }
@@ -101,8 +103,9 @@ pub struct IterTetrahedron<'a> {
 
 impl SimplicialStructure3D {
     /// Simplicial structure initialisation
-    pub fn new() -> SimplicialStructure3D {
-        SimplicialStructure3D {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
             tet_nodes: Vec::new(),
             halftriangle_opposite: Vec::new(),
             nb_tetrahedra: 0,
@@ -114,7 +117,7 @@ impl SimplicialStructure3D {
         }
     }
 
-    fn halfedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> IterHalfEdge<'_> {
+    const fn halfedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> IterHalfEdge<'_> {
         IterHalfEdge {
             simplicial: self,
             ind_halftriangle,
@@ -122,7 +125,7 @@ impl SimplicialStructure3D {
         }
     }
 
-    fn halftriangle(&self, ind_halftriangle: usize) -> IterHalfTriangle {
+    const fn halftriangle(&self, ind_halftriangle: usize) -> IterHalfTriangle<'_> {
         IterHalfTriangle {
             simplicial: self,
             ind_halftriangle,
@@ -130,7 +133,7 @@ impl SimplicialStructure3D {
     }
 
     /// Gets halfedge iterator from index
-    pub fn get_halftriangle(&self, ind_halftriangle: usize) -> Result<IterHalfTriangle> {
+    pub fn get_halftriangle(&self, ind_halftriangle: usize) -> Result<IterHalfTriangle<'_>> {
         if ind_halftriangle < self.halftriangle_opposite.len() {
             Ok(self.halftriangle(ind_halftriangle))
         } else {
@@ -138,7 +141,7 @@ impl SimplicialStructure3D {
         }
     }
 
-    fn tetrahedron(&self, ind_tetrahedron: usize) -> IterTetrahedron {
+    const fn tetrahedron(&self, ind_tetrahedron: usize) -> IterTetrahedron<'_> {
         IterTetrahedron {
             simplicial: self,
             ind_tetrahedron,
@@ -146,7 +149,7 @@ impl SimplicialStructure3D {
     }
 
     /// Gets tetrahedron iterator from index
-    pub fn get_tetrahedron(&self, ind_tetrahedron: usize) -> Result<IterTetrahedron> {
+    pub fn get_tetrahedron(&self, ind_tetrahedron: usize) -> Result<IterTetrahedron<'_>> {
         if ind_tetrahedron < self.nb_tetrahedra {
             Ok(self.tetrahedron(ind_tetrahedron))
         } else {
@@ -155,12 +158,14 @@ impl SimplicialStructure3D {
     }
 
     /// Gets number of triangles
-    pub fn get_nb_tetrahedra(&self) -> usize {
+    #[must_use]
+    pub const fn get_nb_tetrahedra(&self) -> usize {
         self.nb_tetrahedra
     }
 
     /// Gets halfedges containing a pair of nodes
-    pub fn get_halfedge_containing(&self, node1: &Node, node2: &Node) -> Vec<IterHalfEdge> {
+    #[must_use]
+    pub fn get_halfedge_containing(&self, node1: &Node, node2: &Node) -> Vec<IterHalfEdge<'_>> {
         let mut vec_edg = Vec::new();
         for i in 0..self.nb_tetrahedra {
             let first_nod = i << 2;
@@ -195,12 +200,13 @@ impl SimplicialStructure3D {
     }
 
     /// Gets halftriangle containing a pair of nodes
+    #[must_use]
     pub fn get_halftriangle_containing(
         &self,
         node1: &Node,
         node2: &Node,
         node3: &Node,
-    ) -> Option<IterHalfTriangle> {
+    ) -> Option<IterHalfTriangle<'_>> {
         for i in 0..self.nb_tetrahedra {
             let first_nod = i << 2;
             let mut sub_ind_v1 = 4;
@@ -238,7 +244,8 @@ impl SimplicialStructure3D {
     }
 
     /// Gets tetrahedra containing a specific node
-    pub fn get_tetrahedra_containing(&self, node: &Node) -> Vec<IterTetrahedron> {
+    #[must_use]
+    pub fn get_tetrahedra_containing(&self, node: &Node) -> Vec<IterTetrahedron<'_>> {
         let mut vec_tet = Vec::new();
         for i in 0..self.nb_tetrahedra {
             let first_nod = i << 2;
@@ -255,7 +262,7 @@ impl SimplicialStructure3D {
 
     /// Starts BW insertion, setting a first tetrahedron to remove
     pub fn bw_start(&mut self, ind_first_tetra: usize) -> Result<()> {
-        if self.tet_to_check.len() != 0 || self.tet_to_keep.len() != 0 {
+        if !self.tet_to_check.is_empty() || !self.tet_to_keep.is_empty() {
             return Err(anyhow::Error::msg(
                 "Bowyer Watson algorithm already started",
             ));
@@ -269,9 +276,7 @@ impl SimplicialStructure3D {
     pub fn bw_tetra_to_check(&mut self) -> Option<usize> {
         loop {
             if let Some(ind_tetra) = self.tet_to_check.pop() {
-                if self.should_rem_tet[ind_tetra] == false
-                    && self.should_keep_tet[ind_tetra] == false
-                {
+                if !self.should_rem_tet[ind_tetra] && !self.should_keep_tet[ind_tetra] {
                     return Some(ind_tetra);
                 }
             } else {
@@ -282,7 +287,7 @@ impl SimplicialStructure3D {
     }
 
     /// Sets tetrahedron to remove
-    pub fn bw_rem_tetra(&mut self, ind_tetra: usize) -> () {
+    pub fn bw_rem_tetra(&mut self, ind_tetra: usize) {
         let tri0 = ind_tetra << 2;
         let tri1 = tri0 + 1;
         let tri2 = tri0 + 2;
@@ -308,7 +313,7 @@ impl SimplicialStructure3D {
 
     /// BW insertion algorithm
     pub fn bw_insert_node(&mut self, nod: Node) -> Result<Vec<usize>> {
-        if self.tet_to_check.len() != 0 {
+        if !self.tet_to_check.is_empty() {
             return Err(anyhow::Error::msg(
                 "Cannot insert node if all tetrahedra are not checked",
             ));
@@ -339,7 +344,7 @@ impl SimplicialStructure3D {
         let mut ind_cur = 0;
         loop {
             let cur_tri = IterHalfTriangle {
-                simplicial: &self,
+                simplicial: self,
                 ind_halftriangle: vec_tri[ind_cur],
             };
             let he = cur_tri.halfedges();
@@ -347,7 +352,9 @@ impl SimplicialStructure3D {
                 if vec_nei[ind_cur][j].is_none() {
                     let mut he_cur = he[j].opposite().neighbor().opposite();
                     let (ind_cur2, j2) = loop {
-                        if !he_cur.triangle().tetrahedron().should_rem() {
+                        if he_cur.triangle().tetrahedron().should_rem() {
+                            he_cur = he_cur.neighbor().opposite();
+                        } else {
                             let ind_tri2 = he_cur.triangle().ind();
                             let j2 = he_cur.triangle_subind();
                             let ind_cur2 = if let Some((i2, _)) =
@@ -360,15 +367,13 @@ impl SimplicialStructure3D {
                                 vec_tri.len() - 1
                             };
                             break (ind_cur2, j2);
-                        } else {
-                            he_cur = he_cur.neighbor().opposite();
                         }
                     };
                     vec_nei[ind_cur][j] = Some(ind_cur2);
                     vec_nei[ind_cur2][j2] = Some(ind_cur);
                 }
             }
-            ind_cur = ind_cur + 1;
+            ind_cur += 1;
             if ind_cur >= vec_tri.len() {
                 break;
             }
@@ -378,7 +383,7 @@ impl SimplicialStructure3D {
         // 3 - create tetrahedra
         for i in 0..vec_tri.len() {
             let cur_tri = IterHalfTriangle {
-                simplicial: &self,
+                simplicial: self,
                 ind_halftriangle: vec_tri[i],
             };
             let [nod0, nod1, nod2] = cur_tri.nodes();
@@ -392,7 +397,7 @@ impl SimplicialStructure3D {
                 self.halftriangle_opposite.push(0);
                 self.halftriangle_opposite.push(0);
                 self.insert_tetrahedron(nod0, nod2, nod1, nod);
-            };
+            }
         }
 
         // 4 - create links
@@ -417,21 +422,21 @@ impl SimplicialStructure3D {
             let ind_tri0_nei = if vec_nei[ind_nei0][0] == Some(i) {
                 ind_tet_nei0 * 4 + 1
             } else if vec_nei[ind_nei0][1] == Some(i) {
-                ind_tet_nei0 * 4 + 0
+                ind_tet_nei0 * 4
             } else {
                 ind_tet_nei0 * 4 + 2
             };
             let ind_tri1_nei = if vec_nei[ind_nei1][0] == Some(i) {
                 ind_tet_nei1 * 4 + 1
             } else if vec_nei[ind_nei1][1] == Some(i) {
-                ind_tet_nei1 * 4 + 0
+                ind_tet_nei1 * 4
             } else {
                 ind_tet_nei1 * 4 + 2
             };
             let ind_tri2_nei = if vec_nei[ind_nei2][0] == Some(i) {
                 ind_tet_nei2 * 4 + 1
             } else if vec_nei[ind_nei2][1] == Some(i) {
-                ind_tet_nei2 * 4 + 0
+                ind_tet_nei2 * 4
             } else {
                 ind_tet_nei2 * 4 + 2
             };
@@ -456,7 +461,7 @@ impl SimplicialStructure3D {
 
     /// Clean removed tetraedra
     pub fn clean_to_rem(&mut self) -> Result<()> {
-        self.tet_to_rem.sort();
+        self.tet_to_rem.sort_unstable();
         loop {
             if let Some(ind_tetra_rem) = self.tet_to_rem.pop() {
                 self.should_rem_tet[ind_tetra_rem] = false;
@@ -482,7 +487,7 @@ impl SimplicialStructure3D {
         self.tet_nodes.push(nod4);
         self.should_rem_tet.push(false);
         self.should_keep_tet.push(false);
-        self.nb_tetrahedra = self.nb_tetrahedra + 1;
+        self.nb_tetrahedra += 1;
 
         (ind_first, ind_first + 1, ind_first + 2, ind_first + 3)
     }
@@ -541,13 +546,13 @@ impl SimplicialStructure3D {
 
         self.should_rem_tet.pop();
         self.should_keep_tet.pop();
-        self.nb_tetrahedra = self.nb_tetrahedra - 1;
+        self.nb_tetrahedra -= 1;
 
         Ok(())
     }
 
     /// Inserts a first tetrahedron in the structure
-    pub fn first_tetrahedron(&mut self, nodes: [usize; 4]) -> Result<[IterTetrahedron; 4]> {
+    pub fn first_tetrahedron(&mut self, nodes: [usize; 4]) -> Result<[IterTetrahedron<'_>; 4]> {
         if self.nb_tetrahedra != 0 {
             return Err(anyhow::Error::msg("Already tetrahedra in simplicial"));
         }
@@ -624,7 +629,7 @@ impl SimplicialStructure3D {
     }
 
     /// Println each triangle of the graph
-    pub fn println(&self) -> () {
+    pub fn println(&self) {
         for ind_tetra in 0..self.nb_tetrahedra {
             let tetra = self.tetrahedron(ind_tetra);
             print!("  ");
@@ -635,11 +640,13 @@ impl SimplicialStructure3D {
 
 impl<'a> IterHalfEdge<'a> {
     /// Gets subindex within triangle
-    pub fn triangle_subind(&self) -> usize {
+    #[must_use]
+    pub const fn triangle_subind(&self) -> usize {
         self.ind_halfedge
     }
 
     /// First node
+    #[must_use]
     pub fn first_node(&self) -> Node {
         let mod4 = self.ind_halftriangle % 4;
         let subdind = TRIANGLE_SUBINDICES[mod4];
@@ -648,6 +655,7 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Last node
+    #[must_use]
     pub fn last_node(&self) -> Node {
         let mod4 = self.ind_halftriangle % 4;
         let subdind = TRIANGLE_SUBINDICES[mod4];
@@ -657,7 +665,8 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Next halfedge on same triangle
-    pub fn next(&self) -> IterHalfEdge<'a> {
+    #[must_use]
+    pub const fn next(&self) -> Self {
         IterHalfEdge {
             simplicial: self.simplicial,
             ind_halftriangle: self.ind_halftriangle,
@@ -666,7 +675,8 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Previous halfedge on same triangle
-    pub fn prev(&self) -> IterHalfEdge<'a> {
+    #[must_use]
+    pub const fn prev(&self) -> Self {
         IterHalfEdge {
             simplicial: self.simplicial,
             ind_halftriangle: self.ind_halftriangle,
@@ -675,7 +685,8 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Opposite halfedge on opposite triangle
-    pub fn opposite(&self) -> IterHalfEdge<'a> {
+    #[must_use]
+    pub fn opposite(&self) -> Self {
         let [he0, he1, he2] = self.triangle().opposite().halfedges();
 
         let last_node = self.last_node();
@@ -689,7 +700,8 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Opposite halfedge on neighbor triangle (same tetrahedron)
-    pub fn neighbor(&self) -> IterHalfEdge<'a> {
+    #[must_use]
+    pub const fn neighbor(&self) -> Self {
         let mod_tri = self.ind_halftriangle % 4;
 
         let (neigh_tri, neigh_halfedge) = NEIGHBOR_HALFEDGE[mod_tri][self.ind_halfedge];
@@ -702,7 +714,8 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Triangle containing halfedge
-    pub fn triangle(&self) -> IterHalfTriangle<'a> {
+    #[must_use]
+    pub const fn triangle(&self) -> IterHalfTriangle<'a> {
         IterHalfTriangle {
             simplicial: self.simplicial,
             ind_halftriangle: self.ind_halftriangle,
@@ -710,6 +723,7 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Checks halfedge validity (unit test purposes)
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         let first_node = self.first_node();
         let last_node = self.last_node();
@@ -742,6 +756,7 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Halfedge to string
+    #[must_use]
     pub fn to_string(&self) -> String {
         format!(
             "Edge: {} -> {}",
@@ -751,23 +766,25 @@ impl<'a> IterHalfEdge<'a> {
     }
 
     /// Print halfedge string
-    pub fn print(&self) -> () {
+    pub fn print(&self) {
         print!("{}", self.to_string());
     }
 
     /// Println halfedge string
-    pub fn println(&self) -> () {
+    pub fn println(&self) {
         println!("{}", self.to_string());
     }
 }
 
 impl<'a> IterHalfTriangle<'a> {
     /// Gets half triangle index
-    pub fn ind(&self) -> usize {
+    #[must_use]
+    pub const fn ind(&self) -> usize {
         self.ind_halftriangle
     }
 
     /// Returns true if one of the nodes is infinity
+    #[must_use]
     pub fn contains_infinity(&self) -> bool {
         let [nod1, nod2, nod3] = self.nodes();
 
@@ -775,7 +792,8 @@ impl<'a> IterHalfTriangle<'a> {
     }
 
     /// Tetrahedron containing halftriangle
-    pub fn tetrahedron(&self) -> IterTetrahedron<'a> {
+    #[must_use]
+    pub const fn tetrahedron(&self) -> IterTetrahedron<'a> {
         IterTetrahedron {
             simplicial: self.simplicial,
             ind_tetrahedron: self.ind_halftriangle >> 2,
@@ -783,7 +801,8 @@ impl<'a> IterHalfTriangle<'a> {
     }
 
     /// Surrounding halfedges (array of halfedge iterators)
-    pub fn halfedges(&self) -> [IterHalfEdge<'a>; 3] {
+    #[must_use]
+    pub const fn halfedges(&self) -> [IterHalfEdge<'a>; 3] {
         [
             IterHalfEdge {
                 simplicial: self.simplicial,
@@ -804,6 +823,7 @@ impl<'a> IterHalfTriangle<'a> {
     }
 
     /// Nodes(array of nodes)
+    #[must_use]
     pub fn nodes(&self) -> [Node; 3] {
         let mod4 = self.ind_halftriangle % 4;
         let subdind = TRIANGLE_SUBINDICES[mod4];
@@ -815,12 +835,14 @@ impl<'a> IterHalfTriangle<'a> {
     }
 
     /// Opposite node on same tetrahedron
+    #[must_use]
     pub fn opposite_node(&self) -> Node {
         self.simplicial.tet_nodes[self.ind()]
     }
 
     /// Opposite halftriangle on neighbor tetrahedron
-    pub fn opposite(&self) -> IterHalfTriangle<'a> {
+    #[must_use]
+    pub fn opposite(&self) -> Self {
         IterHalfTriangle {
             simplicial: self.simplicial,
             ind_halftriangle: self.simplicial.halftriangle_opposite[self.ind_halftriangle],
@@ -828,27 +850,29 @@ impl<'a> IterHalfTriangle<'a> {
     }
 
     /// Checks halftriangle validity (unit test purposes)
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         let [nod0, nod1, nod2] = self.nodes();
 
         let [nod0o, nod1o, nod2o] = self.opposite().nodes();
 
         if nod0.equals(&nod0o) && nod1.equals(&nod2o) && nod2.equals(&nod1o) {
-            ()
+            ();
         } else if nod0.equals(&nod2o) && nod1.equals(&nod1o) && nod2.equals(&nod0o) {
-            ()
+            ();
         } else if nod0.equals(&nod1o) && nod1.equals(&nod0o) && nod2.equals(&nod2o) {
-            ()
+            ();
         } else {
             log::error!("{}: Wrong opposite halftriangle", self.to_string());
             log::error!("{}", self.opposite().to_string());
             return false;
-        };
+        }
 
         true
     }
 
     /// Triangle to string
+    #[must_use]
     pub fn to_string(&self) -> String {
         let [nod1, nod2, nod3] = self.nodes();
         format!(
@@ -861,19 +885,20 @@ impl<'a> IterHalfTriangle<'a> {
     }
 
     /// Print triangle string
-    pub fn print(&self) -> () {
+    pub fn print(&self) {
         print!("{}", self.to_string());
     }
 
     /// Println triangle string
-    pub fn println(&self) -> () {
+    pub fn println(&self) {
         println!("{}", self.to_string());
     }
 }
 
 impl<'a> IterTetrahedron<'a> {
     /// Gets tetrahedron index
-    pub fn ind(&self) -> usize {
+    #[must_use]
+    pub const fn ind(&self) -> usize {
         self.ind_tetrahedron
     }
 
@@ -886,16 +911,18 @@ impl<'a> IterTetrahedron<'a> {
     }
 
     /// Returns true if one of the nodes is infinity
+    #[must_use]
     pub fn contains_infinity(&self) -> bool {
         let ind_first = self.ind_tetrahedron << 2;
-        self.simplicial.tet_nodes[ind_first + 0].equals(&Node::Infinity)
+        self.simplicial.tet_nodes[ind_first].equals(&Node::Infinity)
             || self.simplicial.tet_nodes[ind_first + 1].equals(&Node::Infinity)
             || self.simplicial.tet_nodes[ind_first + 2].equals(&Node::Infinity)
             || self.simplicial.tet_nodes[ind_first + 3].equals(&Node::Infinity)
     }
 
     /// Surrounding halftriangles (array of halftriangle iterators)
-    pub fn halftriangles(&self) -> [IterHalfTriangle<'a>; 4] {
+    #[must_use]
+    pub const fn halftriangles(&self) -> [IterHalfTriangle<'a>; 4] {
         let ind_first = self.ind_tetrahedron << 2;
         [
             IterHalfTriangle {
@@ -918,6 +945,7 @@ impl<'a> IterTetrahedron<'a> {
     }
 
     /// Nodes(array of nodes)
+    #[must_use]
     pub fn nodes(&self) -> [Node; 4] {
         let ind_first = self.ind_tetrahedron << 2;
         [
@@ -929,6 +957,7 @@ impl<'a> IterTetrahedron<'a> {
     }
 
     /// Checks validity of tetrahedron (for unit test purposes)
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         if self.should_rem() || self.bw_to_keep() {
             log::error!("{}: non cleaned tetrahedron", self.to_string());
@@ -952,6 +981,7 @@ impl<'a> IterTetrahedron<'a> {
     }
 
     /// Tetrahedron to string
+    #[must_use]
     pub fn to_string(&self) -> String {
         let [nod1, nod2, nod3, nod4] = self.nodes();
         format!(
@@ -965,12 +995,12 @@ impl<'a> IterTetrahedron<'a> {
     }
 
     /// Print tetrahedron string
-    pub fn print(&self) -> () {
+    pub fn print(&self) {
         print!("{}", self.to_string());
     }
 
     /// Println tetrahedron string
-    pub fn println(&self) -> () {
+    pub fn println(&self) {
         println!("{}", self.to_string());
     }
 }

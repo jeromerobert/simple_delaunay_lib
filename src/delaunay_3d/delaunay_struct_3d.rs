@@ -23,8 +23,9 @@ pub struct DelaunayStructure3D {
 
 impl DelaunayStructure3D {
     /// Delaunay structure initialisation
-    pub fn new() -> DelaunayStructure3D {
-        DelaunayStructure3D {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
             simpl_struct: SimplicialStructure3D::new(),
             vertex_coordinates: Vec::new(),
             walk_ns: 0,
@@ -33,12 +34,14 @@ impl DelaunayStructure3D {
     }
 
     /// Gets simplicial structure
-    pub fn get_simplicial(&self) -> &SimplicialStructure3D {
+    #[must_use]
+    pub const fn get_simplicial(&self) -> &SimplicialStructure3D {
         &self.simpl_struct
     }
 
     /// Gets graph vertices
-    pub fn get_vertices(&self) -> &Vec<[f64; 3]> {
+    #[must_use]
+    pub const fn get_vertices(&self) -> &Vec<[f64; 3]> {
         &self.vertex_coordinates
     }
 
@@ -308,8 +311,7 @@ impl DelaunayStructure3D {
         let vert = self.get_vertices()[ind_vert];
         let mut ind_tetra_cur = ind_starting_tetrahedron;
         let start_tetra = self.get_simplicial().get_tetrahedron(ind_tetra_cur)?;
-        let mut vec_tri: Vec<IterHalfTriangle> =
-            start_tetra.halftriangles().iter().map(|&tri| tri).collect();
+        let mut vec_tri: Vec<IterHalfTriangle> = start_tetra.halftriangles().to_vec();
         let mut side = 0;
         let mut nb_visited = 0;
         let th_visited = self.get_simplicial().get_nb_tetrahedra() >> 2;
@@ -318,21 +320,19 @@ impl DelaunayStructure3D {
                 break Err(anyhow::Error::msg("Could not find sphere containing point"));
             }
             if let Some(tri) = self.choose_tri(&vec_tri, &vert) {
-                nb_visited = nb_visited + 1;
+                nb_visited += 1;
                 let tri_opp = tri.opposite();
                 ind_tetra_cur = tri_opp.tetrahedron().ind();
                 vec_tri.clear();
                 let hes = tri_opp.halfedges();
-                vec_tri.push(hes[(0 + side) % 3].neighbor().triangle());
+                vec_tri.push(hes[side % 3].neighbor().triangle());
                 vec_tri.push(hes[(1 + side) % 3].neighbor().triangle());
                 vec_tri.push(hes[(2 + side) % 3].neighbor().triangle());
                 side = (side + 1) % 3;
+            } else if self.is_vertex_in_sphere(ind_vert, ind_tetra_cur)? {
+                break Ok(ind_tetra_cur);
             } else {
-                if self.is_vertex_in_sphere(ind_vert, ind_tetra_cur)? {
-                    break Ok(ind_tetra_cur);
-                } else {
-                    break Err(anyhow::Error::msg("Could not find sphere containing point"));
-                }
+                break Err(anyhow::Error::msg("Could not find sphere containing point"));
             }
         }
     }
@@ -367,13 +367,13 @@ impl DelaunayStructure3D {
         };
         let duration = now.elapsed();
         let nano = duration.as_nanos();
-        self.walk_ns = self.walk_ns + nano;
+        self.walk_ns += nano;
 
         let now = Instant::now();
         let added_tetra = self.insert_bw(ind_vertex, ind_tetrahedron)?;
         let duration = now.elapsed();
         let nano = duration.as_nanos();
-        self.insert_ns = self.insert_ns + nano;
+        self.insert_ns += nano;
 
         Ok(added_tetra[0])
     }
@@ -396,7 +396,12 @@ impl DelaunayStructure3D {
                 .enumerate()
                 .map(|(e, &ind)| (e, self.get_vertices()[ind]))
                 .map(|(e, pt)| (e, [pt[0] - pt1[0], pt[1] - pt1[1], pt[2] - pt1[2]]))
-                .map(|(e, vec)| (e, vec[0] * vec12[0] + vec[1] * vec12[1] + vec[2] * vec12[2]))
+                .map(|(e, vec)| {
+                    (
+                        e,
+                        vec[2].mul_add(vec12[2], vec[0].mul_add(vec12[0], vec[1] * vec12[1])),
+                    )
+                })
                 .map(|(e, scal)| if scal < 0.0 { (e, -scal) } else { (e, scal) })
                 .max_by(|(_, val1), (_, val2)| val1.partial_cmp(val2).unwrap())
                 .map(|(e, _)| e)
@@ -409,7 +414,7 @@ impl DelaunayStructure3D {
                 if let Some(ind4) = indices_to_insert.pop() {
                     let pt4 = self.get_vertices()[ind4];
 
-                    let sign = robust::orient3d(
+                    let sign = orient3d(
                         Coord3D {
                             x: pt1[0],
                             y: pt1[1],
@@ -482,7 +487,7 @@ impl DelaunayStructure3D {
         reorder_points: bool,
     ) -> Result<()> {
         let mut indices_to_insert = Vec::new();
-        for &vert in to_insert.iter() {
+        for &vert in to_insert {
             indices_to_insert.push(self.vertex_coordinates.len());
             self.vertex_coordinates.push(vert);
         }

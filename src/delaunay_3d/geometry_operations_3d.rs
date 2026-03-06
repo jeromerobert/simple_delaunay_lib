@@ -1,11 +1,12 @@
 /// Sorts vertices along 3D Hilbert curve
+#[must_use]
 pub fn build_hilbert_curve_3d(vertices: &Vec<[f64; 3]>, indices_to_add: &Vec<usize>) -> Vec<usize> {
     let mut curve_order = Vec::new();
 
     let mut pt_min = vertices[indices_to_add[0]];
     let mut pt_max = vertices[indices_to_add[0]];
 
-    for &ind in indices_to_add.iter() {
+    for &ind in indices_to_add {
         if pt_min[0] > vertices[ind][0] {
             pt_min[0] = vertices[ind][0];
         }
@@ -27,26 +28,26 @@ pub fn build_hilbert_curve_3d(vertices: &Vec<[f64; 3]>, indices_to_add: &Vec<usi
     }
 
     let mut to_subdiv = Vec::new();
-    let indices: Vec<usize> = indices_to_add.iter().map(|&x| x).collect();
+    let indices: Vec<usize> = indices_to_add.clone();
     to_subdiv.push(([0, 0, 0], 0, pt_min, pt_max, indices));
 
     loop {
         if let Some((start, dir, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
             if indices_to_add.len() > 1 {
-                let sep_x = (pt_min[0] + pt_max[0]) / 2.0;
-                let sep_y = (pt_min[1] + pt_max[1]) / 2.0;
-                let sep_z = (pt_min[2] + pt_max[2]) / 2.0;
+                let sep_x = f64::midpoint(pt_min[0], pt_max[0]);
+                let sep_y = f64::midpoint(pt_min[1], pt_max[1]);
+                let sep_z = f64::midpoint(pt_min[2], pt_max[2]);
 
                 let mut sep_ind = [
                     [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
                     [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
                 ];
 
-                for &ind in indices_to_add.iter() {
+                for &ind in &indices_to_add {
                     let vert = vertices[ind];
-                    let xind = if vert[0] < sep_x { 0 } else { 1 } as usize;
-                    let yind = if vert[1] < sep_y { 0 } else { 1 } as usize;
-                    let zind = if vert[2] < sep_z { 0 } else { 1 } as usize;
+                    let xind = i32::from(vert[0] >= sep_x) as usize;
+                    let yind = i32::from(vert[1] >= sep_y) as usize;
+                    let zind = i32::from(vert[2] >= sep_z) as usize;
                     sep_ind[xind][yind][zind].push(ind);
                 }
 

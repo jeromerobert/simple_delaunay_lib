@@ -1,7 +1,5 @@
 use anyhow::Result;
-use env_logger;
-use log;
-use nalgebra::base::*;
+use nalgebra::base::{DimAdd, DimNameAdd, Matrix3x2, Norm, Normed, Vector2, Vector3};
 use rand::RngExt;
 use std::time::Instant;
 
@@ -29,9 +27,9 @@ fn circle_center_and_radius(
     );
 
     let b = Vector3::new(
-        0.5 * (pt2 - pt1).norm_squared() + (pt2 - pt1).dot(pt1),
-        0.5 * (pt3 - pt2).norm_squared() + (pt3 - pt2).dot(pt2),
-        0.5 * (pt1 - pt3).norm_squared() + (pt1 - pt3).dot(pt3),
+        0.5f64.mul_add((pt2 - pt1).norm_squared(), (pt2 - pt1).dot(pt1)),
+        0.5f64.mul_add((pt3 - pt2).norm_squared(), (pt3 - pt2).dot(pt2)),
+        0.5f64.mul_add((pt1 - pt3).norm_squared(), (pt1 - pt3).dot(pt3)),
     );
 
     let mat_mod = mat.transpose() * mat;
@@ -166,7 +164,7 @@ fn main() -> Result<()> {
     del_struct.insert_vertices(&vec_pts, true)?;
     let duration = now.elapsed();
     let milli = duration.as_millis();
-    log::info!("Delaunay computed in {}ms", milli);
+    log::info!("Delaunay computed in {milli}ms");
 
     log::info!("Checking delaunay");
     if del_struct.is_valid()? {

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use env_logger;
 use rand::RngExt;
 use std::time::Instant;
 
@@ -30,7 +29,7 @@ fn main() -> Result<()> {
         let duration = now.elapsed();
         let milli = duration.as_millis();
 
-        println!("{} vertices: {}ms", nb_vert, milli);
+        println!("{nb_vert} vertices: {milli}ms");
     }
 
     Ok(())

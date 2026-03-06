@@ -1,13 +1,14 @@
 use robust::{self, Coord};
 
 /// Sorts vertices along 2D Hilbert curve
+#[must_use]
 pub fn build_hilbert_curve(vertices: &Vec<[f64; 2]>, indices_to_add: &Vec<usize>) -> Vec<usize> {
     let mut curve_order = Vec::new();
 
     let mut pt_min = vertices[indices_to_add[0]];
     let mut pt_max = vertices[indices_to_add[0]];
 
-    for &ind in indices_to_add.iter() {
+    for &ind in indices_to_add {
         if pt_min[0] > vertices[ind][0] {
             pt_min[0] = vertices[ind][0];
         }
@@ -23,21 +24,21 @@ pub fn build_hilbert_curve(vertices: &Vec<[f64; 2]>, indices_to_add: &Vec<usize>
     }
 
     let mut to_subdiv = Vec::new();
-    let indices: Vec<usize> = indices_to_add.iter().map(|&x| x).collect();
+    let indices: Vec<usize> = indices_to_add.clone();
     to_subdiv.push((0, pt_min, pt_max, indices));
 
     loop {
         if let Some((rot, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
             if indices_to_add.len() > 1 {
-                let sep_x = (pt_min[0] + pt_max[0]) / 2.0;
-                let sep_y = (pt_min[1] + pt_max[1]) / 2.0;
+                let sep_x = f64::midpoint(pt_min[0], pt_max[0]);
+                let sep_y = f64::midpoint(pt_min[1], pt_max[1]);
 
                 let mut ind_a = Vec::new();
                 let mut ind_b = Vec::new();
                 let mut ind_c = Vec::new();
                 let mut ind_d = Vec::new();
 
-                for &ind in indices_to_add.iter() {
+                for &ind in &indices_to_add {
                     let vert = vertices[ind];
                     if vert[0] < sep_x {
                         if vert[1] < sep_y {
@@ -45,12 +46,10 @@ pub fn build_hilbert_curve(vertices: &Vec<[f64; 2]>, indices_to_add: &Vec<usize>
                         } else {
                             ind_b.push(ind);
                         }
+                    } else if vert[1] < sep_y {
+                        ind_d.push(ind);
                     } else {
-                        if vert[1] < sep_y {
-                            ind_d.push(ind);
-                        } else {
-                            ind_c.push(ind);
-                        }
+                        ind_c.push(ind);
                     }
                 }
 
@@ -119,6 +118,7 @@ pub fn build_hilbert_curve(vertices: &Vec<[f64; 2]>, indices_to_add: &Vec<usize>
 }
 
 /// checks if ang(pt1pt0, pt1pt2) is convex, flat, or concave
+#[must_use]
 pub fn is_convex(pt0: [f64; 2], pt1: [f64; 2], pt2: [f64; 2]) -> i8 {
     let sign = robust::orient2d(
         Coord {
@@ -142,12 +142,8 @@ pub fn is_convex(pt0: [f64; 2], pt1: [f64; 2], pt2: [f64; 2]) -> i8 {
     } else {
         let pt1pt0 = [pt1[0] - pt0[0], pt1[1] - pt0[1]];
         let pt1pt2 = [pt1[0] - pt2[0], pt1[1] - pt2[1]];
-        let scal = pt1pt0[0] * pt1pt2[0] + pt1pt0[1] * pt1pt2[1];
+        let scal = pt1pt0[0].mul_add(pt1pt2[0], pt1pt0[1] * pt1pt2[1]);
 
-        if scal > 0. {
-            1
-        } else {
-            0
-        }
+        i8::from(scal > 0.)
     }
 }

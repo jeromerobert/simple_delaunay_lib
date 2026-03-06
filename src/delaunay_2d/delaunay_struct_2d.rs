@@ -16,7 +16,7 @@ pub enum ExtendedTriangle {
 
 /// 2D Delaunay structure
 pub struct DelaunayStructure2D {
-    simpl_struct: simplicial_struct_2d::SimplicialStructure2D,
+    simpl_struct: SimplicialStructure2D,
     vertex_coordinates: Vec<[f64; 2]>,
     walk_ms: u128,
     insert_ms: u128,
@@ -25,9 +25,10 @@ pub struct DelaunayStructure2D {
 
 impl DelaunayStructure2D {
     /// Initialize Delaunay structure
-    pub fn new() -> DelaunayStructure2D {
-        DelaunayStructure2D {
-            simpl_struct: simplicial_struct_2d::SimplicialStructure2D::new(),
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            simpl_struct: SimplicialStructure2D::new(),
             vertex_coordinates: Vec::new(),
             walk_ms: 0,
             insert_ms: 0,
@@ -36,12 +37,14 @@ impl DelaunayStructure2D {
     }
 
     /// Gets simplicial structure
-    pub fn get_simplicial(&self) -> &SimplicialStructure2D {
+    #[must_use]
+    pub const fn get_simplicial(&self) -> &SimplicialStructure2D {
         &self.simpl_struct
     }
 
     /// Gets graph vertices
-    pub fn get_vertices(&self) -> &Vec<[f64; 2]> {
+    #[must_use]
+    pub const fn get_vertices(&self) -> &Vec<[f64; 2]> {
         &self.vertex_coordinates
     }
 
@@ -50,38 +53,22 @@ impl DelaunayStructure2D {
         let [node1, node2, node3] = self.get_simplicial().get_triangle(ind_triangle)?.nodes();
 
         let ext_tri = match (node1, node2, node3) {
-            (
-                simplicial_struct_2d::Node::Infinity,
-                simplicial_struct_2d::Node::Value(ind_v2),
-                simplicial_struct_2d::Node::Value(ind_v3),
-            ) => {
+            (Node::Infinity, Node::Value(ind_v2), Node::Value(ind_v3)) => {
                 let pt2 = self.get_vertices()[ind_v2];
                 let pt3 = self.get_vertices()[ind_v3];
                 ExtendedTriangle::Segment([pt2, pt3])
             }
-            (
-                simplicial_struct_2d::Node::Value(ind_v1),
-                simplicial_struct_2d::Node::Infinity,
-                simplicial_struct_2d::Node::Value(ind_v3),
-            ) => {
+            (Node::Value(ind_v1), Node::Infinity, Node::Value(ind_v3)) => {
                 let pt1 = self.get_vertices()[ind_v1];
                 let pt3 = self.get_vertices()[ind_v3];
                 ExtendedTriangle::Segment([pt3, pt1])
             }
-            (
-                simplicial_struct_2d::Node::Value(ind_v1),
-                simplicial_struct_2d::Node::Value(ind_v2),
-                simplicial_struct_2d::Node::Infinity,
-            ) => {
+            (Node::Value(ind_v1), Node::Value(ind_v2), Node::Infinity) => {
                 let pt1 = self.get_vertices()[ind_v1];
                 let pt2 = self.get_vertices()[ind_v2];
                 ExtendedTriangle::Segment([pt1, pt2])
             }
-            (
-                simplicial_struct_2d::Node::Value(ind_v1),
-                simplicial_struct_2d::Node::Value(ind_v2),
-                simplicial_struct_2d::Node::Value(ind_v3),
-            ) => {
+            (Node::Value(ind_v1), Node::Value(ind_v2), Node::Value(ind_v3)) => {
                 let pt1 = self.get_vertices()[ind_v1];
                 let pt2 = self.get_vertices()[ind_v2];
                 let pt3 = self.get_vertices()[ind_v3];
@@ -202,8 +189,7 @@ impl DelaunayStructure2D {
         let vert = self.get_vertices()[ind_vert];
         let mut ind_tri_cur = ind_starting_triangle;
         let start_tri = self.get_simplicial().get_triangle(ind_tri_cur)?;
-        let mut vec_edg: Vec<simplicial_struct_2d::IterHalfEdge> =
-            start_tri.halfedges().iter().map(|&he| he).collect();
+        let mut vec_edg: Vec<simplicial_struct_2d::IterHalfEdge> = start_tri.halfedges().to_vec();
         let mut side = false;
         loop {
             if let Some(he) = self.choose_he(&vec_edg, &vert) {
@@ -279,7 +265,7 @@ impl DelaunayStructure2D {
 
         let duration = now.elapsed();
         let milli = duration.as_nanos();
-        self.walk_ms = self.walk_ms + milli;
+        self.walk_ms += milli;
 
         let now = Instant::now();
         let mut he_to_evaluate = Vec::new();
@@ -293,7 +279,7 @@ impl DelaunayStructure2D {
 
         let duration = now.elapsed();
         let milli = duration.as_nanos();
-        self.insert_ms = self.insert_ms + milli;
+        self.insert_ms += milli;
 
         let now = Instant::now();
         while let Some(ind_he) = he_to_evaluate.pop() {
@@ -321,7 +307,7 @@ impl DelaunayStructure2D {
 
         let duration = now.elapsed();
         let milli = duration.as_nanos();
-        self.flip_ms = self.flip_ms + milli;
+        self.flip_ms += milli;
 
         Ok(())
     }
@@ -407,7 +393,7 @@ impl DelaunayStructure2D {
         reorder_points: bool,
     ) -> Result<()> {
         let mut indices_to_insert = Vec::new();
-        for &vert in to_insert.iter() {
+        for &vert in to_insert {
             indices_to_insert.push(self.vertex_coordinates.len());
             self.vertex_coordinates.push(vert);
         }

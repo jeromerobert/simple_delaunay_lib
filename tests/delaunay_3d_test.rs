@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod delaunay_3d_test {
     use anyhow::Result;
-    use env_logger;
+
     use rand::RngExt;
     use std::time::Instant;
 
@@ -15,11 +15,11 @@ mod delaunay_3d_test {
     fn create_and_check_delaunay(vec_pts: &Vec<[f64; 3]>) -> Result<()> {
         let now = Instant::now();
         let mut del_struct = delaunay_struct_3d::DelaunayStructure3D::new();
-        del_struct.insert_vertices(&vec_pts, true)?;
+        del_struct.insert_vertices(vec_pts, true)?;
         let duration = now.elapsed();
         let milli = duration.as_millis();
 
-        log::info!("Delaunay computed in {}ms", milli);
+        log::info!("Delaunay computed in {milli}ms");
 
         log::info!("Checking delaunay");
         assert!(del_struct.is_valid()?);
@@ -76,7 +76,7 @@ mod delaunay_3d_test {
         let duration = now.elapsed();
         let milli = duration.as_millis();
 
-        log::info!("Delaunay computed in {}ms", milli);
+        log::info!("Delaunay computed in {milli}ms");
 
         log::info!("Checking delaunay");
         assert!(del_struct.is_valid()?);
@@ -93,7 +93,7 @@ mod delaunay_3d_test {
         let duration = now.elapsed();
         let milli = duration.as_millis();
 
-        log::info!("Delaunay update computed in {}ms", milli);
+        log::info!("Delaunay update computed in {milli}ms");
 
         log::info!("Checking delaunay");
         assert!(del_struct.is_valid()?);

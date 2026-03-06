@@ -1,5 +1,4 @@
 use anyhow::Result;
-use env_logger;
 use rand::RngExt;
 
 use svg::node::element;
@@ -47,7 +46,7 @@ fn main() -> Result<()> {
             .set("stroke-width", 1.0)
             .set("d", data);
 
-        document = document.add(path)
+        document = document.add(path);
     }
 
     svg::save("hilbert_path.svg", &document).unwrap();
