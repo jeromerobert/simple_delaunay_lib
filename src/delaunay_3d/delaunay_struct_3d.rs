@@ -98,33 +98,9 @@ impl DelaunayStructure3D {
         let ext_tri = self.get_extended_tetrahedron(ind_tetra)?;
 
         let sign = match ext_tri {
-            ExtendedTetrahedron::Tetrahedron(tri) => insphere(
-                Coord3D {
-                    x: tri[0][0],
-                    y: tri[0][1],
-                    z: tri[0][2],
-                },
-                Coord3D {
-                    x: tri[1][0],
-                    y: tri[1][1],
-                    z: tri[1][2],
-                },
-                Coord3D {
-                    x: tri[2][0],
-                    y: tri[2][1],
-                    z: tri[2][2],
-                },
-                Coord3D {
-                    x: tri[3][0],
-                    y: tri[3][1],
-                    z: tri[3][2],
-                },
-                Coord3D {
-                    x: vert[0],
-                    y: vert[1],
-                    z: vert[2],
-                },
-            ),
+            ExtendedTetrahedron::Tetrahedron(tri) => {
+                self.simpl_struct.sphere_cache.insphere(&tri, &vert, ind_tetra)
+            },
             ExtendedTetrahedron::Triangle(lin) => orient3d(
                 Coord3D {
                     x: lin[0][0],

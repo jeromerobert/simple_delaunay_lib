@@ -3,6 +3,8 @@ use std::{fmt::Display, vec};
 use anyhow::Result;
 use log;
 
+use crate::delaunay_3d::sphere::SphereCache;
+
 /// For each triangle index within tetrahedron, associate list of vertices within tetrahedron
 pub const TRIANGLE_SUBINDICES: [[usize; 3]; 4] = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
 
@@ -68,7 +70,7 @@ pub struct SimplicialStructure3D {
     // such that tri3 = (i,   i+1, i+2)
     tet_nodes: Vec<Node>,
     halftriangle_opposite: Vec<usize>,
-
+    pub sphere_cache: SphereCache,
     nb_tetrahedra: usize,
 
     // structures to speed up tetrahedra insertion with Bowyer Watson algorithm
@@ -485,6 +487,7 @@ impl SimplicialStructure3D {
         self.tet_nodes[ind_first + 3] = nod4;
         self.should_rem_tet[ind_tetra] = false;
         self.should_keep_tet[ind_tetra] = false;
+        self.sphere_cache.invalidate(ind_tetra);
 
         (ind_first, ind_first + 1, ind_first + 2, ind_first + 3)
     }
