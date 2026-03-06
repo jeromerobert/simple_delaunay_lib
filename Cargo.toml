@@ -40,3 +40,22 @@ path = "example/computation_time_2d.rs"
 [[example]]
 name = "computation_time_3d"
 path = "example/computation_time_3d.rs"
+
+[lints.rust]
+unused = "warn"
+warnings = "warn"
+unused_qualifications = "warn"
+nonstandard_style = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+cargo_common_metadata = "allow"
+multiple_crate_versions = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
