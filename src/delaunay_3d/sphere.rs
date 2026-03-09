@@ -54,7 +54,7 @@ impl Sphere {
         let denom = 2.0 * cross_ba_ca.dot(da);
 
         // If denom is near zero, the 4 points are coplanar (or worse)
-        if denom * denom < 1e-9 * lba * lca * lda {
+        if denom * denom < 1e-12 * lba * lca * lda {
             return Self {
                 center: DVec3::default(),
                 radius_sqr: -1.,
@@ -75,8 +75,18 @@ pub struct SphereCache {
     /// Uses `RefCell` to provide interior mutability,
     /// allowing the cache to be updated within immutable methods.
     data: RefCell<Vec<Sphere>>,
+    stats: RefCell<(usize, usize, usize, usize)>,
 }
 
+impl Drop for SphereCache {
+    fn drop(&mut self) {
+        let stat = self.stats.borrow();
+        println!("Num sphere cache hit: {}", stat.0);
+        println!("Num sphere cache fail: {}", stat.1);
+        println!("Num sphere cache degenerated: {}", stat.2);
+        println!("Num sphere cache closed: {}", stat.3);
+    }
+}
 impl SphereCache {
     /// Resets the cached sphere for a specific tetrahedron.
     pub fn invalidate(&self, ind_tetra: usize) {
@@ -98,9 +108,14 @@ impl SphereCache {
         if !s.degenerated() {
             // Fast-path: check if the cached sphere gives a definitive answer
             let ds = s.contains_point(point);
-            if ds.abs() > 1e-3 {
+            if ds.abs() > 1e-8 {
+                self.stats.borrow_mut().0 += 1;
                 return ds;
+            } else {
+                self.stats.borrow_mut().3 += 1;
             }
+        } else {
+            self.stats.borrow_mut().2 += 1;
         }
         // Fallback to robust predicates for degenerate cases or numerical uncertainties
         let c = |p: &[f64; 3]| Coord3D {
@@ -108,6 +123,7 @@ impl SphereCache {
             y: p[1],
             z: p[2],
         };
+        self.stats.borrow_mut().1 += 1;
         robust::insphere(
             c(&tetra[0]),
             c(&tetra[1]),
